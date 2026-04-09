@@ -1,0 +1,1172 @@
+{
+  "name": "Tool-Create-AssignMauticTag-Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "2a50fd9d-cca6-48a8-8c55-356aad6a9af1",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -80,
+        320
+      ],
+      "id": "5f1f798a-383d-4fc5-ba3e-795578c97bb9",
+      "name": "Webhook",
+      "webhookId": "2a50fd9d-cca6-48a8-8c55-356aad6a9af1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.c1m.ai/webhook/bd119f7a-722b-4906-abeb-3ec7dbb11f91",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "search_by",
+              "value": "email"
+            },
+            {
+              "name": "search_value",
+              "value": "={{ $json.body.email_address }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        192,
+        48
+      ],
+      "id": "714d15c8-bdcd-4500-800e-ac14e658a668",
+      "name": "getContact"
+    },
+    {
+      "parameters": {
+        "jsCode": "const tags = Object.values($input.first().json.tags);\nconst tagToCheck = $('Webhook').first().json.body.tag;\n\nconst exists = tags.some(t => t.tag.toLowerCase().trim() === tagToCheck.toLowerCase().trim());\nreturn [{ exists }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        32
+      ],
+      "id": "0317d538-a232-4720-b447-2d25fcf7f3a2",
+      "name": "checkIfTagExists"
+    },
+    {
+      "parameters": {
+        "url": "https://mautic.c1m.ai/api/tags",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "mauticApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        512,
+        32
+      ],
+      "id": "dbeef2b8-a163-4f53-b861-eef755b78136",
+      "name": "getAllTags",
+      "credentials": {
+        "mauticApi": {
+          "id": "KKVYafejGMsSgXMj",
+          "name": "Mautic account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7caf426a-9a2b-4231-bb2a-40e544b2aa51",
+              "leftValue": "={{ $json.body.email_address }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        320
+      ],
+      "id": "7ce4ecdc-27e4-4f66-b31c-553a4eae17fd",
+      "name": "ifEmailAddressProvided"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mautic.c1m.ai/api/tags/new",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "mauticApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "tag",
+              "value": "={{ $('Webhook').item.json.body.tag }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        928,
+        -224
+      ],
+      "id": "4dcc9c4e-55d9-4f18-9826-f51fcf777953",
+      "name": "createTag",
+      "credentials": {
+        "mauticApi": {
+          "id": "KKVYafejGMsSgXMj",
+          "name": "Mautic account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cfb5c036-87c1-450d-99c6-bb4a2864f10d",
+              "leftValue": "={{ $json.exists }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        816,
+        32
+      ],
+      "id": "afa981f9-51a4-4513-ba6e-23a4f5adba03",
+      "name": "ifTagNotExistInMautic"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2304,
+        128
+      ],
+      "id": "1ee88cca-8ca2-4877-9aa3-4d4f55aa5784",
+      "name": "successResponse"
+    },
+    {
+      "parameters": {
+        "content": "## JSON Payload\n\nhttps://n8n.c1m.ai/webhook/2a50fd9d-cca6-48a8-8c55-356aad6a9af1\n\n{\n\"email_address\": \"nabeeluser945@gmail.com\",  \n\"tag\": \"mql\",\n\"action\": \"add\" for add tag AND \"remove\" for remove tag\n}",
+        "height": 336,
+        "width": 352
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -192,
+        112
+      ],
+      "typeVersion": 1,
+      "id": "efabffc1-1f2d-46f2-a0f3-d5af14f1197c",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"error\": \"email address is not provided.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        400
+      ],
+      "id": "3ffc1173-bcd2-4ae0-bfd3-5f003a5e0754",
+      "name": "emailNotProvidedError"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"error\": \"contact does not exist in mautic\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        256
+      ],
+      "id": "777f2b5e-edc0-4aff-9349-ef073b4c1921",
+      "name": "contactNotExistError"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b76f7c8e-7278-4621-8266-40aa184aea08",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        336,
+        48
+      ],
+      "id": "f979be59-9e64-4557-927d-0a3122a5c531",
+      "name": "ifNotContactExists"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        736,
+        304
+      ],
+      "id": "8fe2eb49-9bfa-4eae-adec-1bbf288ca3d2",
+      "name": "emailOrContactNotExistResponse"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"message\": \"new tag created and asigned to conatct\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2016,
+        -240
+      ],
+      "id": "63f6ce61-e28b-4676-a395-3602967ace26",
+      "name": "newTagMessage"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"message\": \"contact has assigned existing tag\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1968,
+        544
+      ],
+      "id": "1be29c9c-774e-46b8-90d7-abcafdfc8193",
+      "name": "existingTagMessage"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.c1m.ai/webhook/contact-update",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "mauticApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "={{ $('getContact').item.json.id }}"
+            },
+            {
+              "name": "tag",
+              "value": "={{ $json.tag.tag }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1392,
+        -240
+      ],
+      "id": "eb91c89d-3bcf-4f33-a915-5a3f3ce64e51",
+      "name": "updateContactWitNewTag",
+      "credentials": {
+        "mauticApi": {
+          "id": "KKVYafejGMsSgXMj",
+          "name": "Mautic account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.c1m.ai/webhook/contact-update",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "mauticApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "tag",
+              "value": "={{ $('Webhook').item.json.body.tag.toUpperCase() }}"
+            },
+            {
+              "name": "id",
+              "value": "={{ $('getContact').item.json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1664,
+        528
+      ],
+      "id": "76f78ff9-19c7-44fd-9d60-68df930abe54",
+      "name": "updateContactWithExistingTag",
+      "credentials": {
+        "mauticApi": {
+          "id": "KKVYafejGMsSgXMj",
+          "name": "Mautic account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Checks if Contact exists in Mautic",
+        "height": 528,
+        "width": 368,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        160,
+        -304
+      ],
+      "typeVersion": 1,
+      "id": "cdaaf6a4-9124-4a13-8735-b7acee0d4826",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Checks If email provided",
+        "height": 816,
+        "width": 768,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        160,
+        224
+      ],
+      "typeVersion": 1,
+      "id": "ee469459-d6d9-4f80-a988-0206aa336265",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Checks If tag exists in mautic ",
+        "height": 528,
+        "width": 400
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        528,
+        -304
+      ],
+      "typeVersion": 1,
+      "id": "cf5b11f9-4f7b-4362-8aa9-e9a2e0b6c4fb",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Create new tag and assign to contact",
+        "height": 464,
+        "width": 1568,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        928,
+        -304
+      ],
+      "typeVersion": 1,
+      "id": "6e5a4b23-ba99-456b-b6b2-5aef0f691fca",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## Assign existing tag to contact",
+        "height": 880,
+        "width": 1568,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        928,
+        160
+      ],
+      "typeVersion": 1,
+      "id": "d4a53ef9-712a-4b9e-906e-806baf327552",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0564634d-6cc2-46e6-a02f-65323b1cd2a7",
+              "leftValue": "={{ $('Webhook').item.json.body.action }}",
+              "rightValue": "add",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1072,
+        -224
+      ],
+      "id": "ebb35574-f752-4b67-a6fc-5e27a164b881",
+      "name": "validateAction"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2355dd1d-14c3-4d61-ac71-4b9c8a1d093f",
+              "leftValue": "={{ $('Webhook').item.json.body.action }}",
+              "rightValue": "add",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        928,
+        304
+      ],
+      "id": "04ae1397-2754-43ab-a717-6fbf553597b4",
+      "name": "validateAction1"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://mautic.c1m.ai/api/contacts/{{ $('getContact').item.json.id }}/edit",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "mauticApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tags\": [\"-{{ $('Webhook').item.json.body.tag }}\"]\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1424,
+        320
+      ],
+      "id": "127c1eb6-1d12-49b0-896d-039248dd4cd1",
+      "name": "removeTagFromContact1",
+      "credentials": {
+        "mauticApi": {
+          "id": "KKVYafejGMsSgXMj",
+          "name": "Mautic account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"message\": \"tag has been removed\"\n\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2000,
+        112
+      ],
+      "id": "fdee9383-eb4a-4eb5-b6dc-943757b059fc",
+      "name": "removeTagMessage"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://mautic.c1m.ai/api/contacts/{{ $('getContact').item.json.id }}/edit",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "mauticApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tags\": [\"-{{ $('Webhook').item.json.body.tag }}\"]\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1408,
+        -16
+      ],
+      "id": "492462b7-952c-4feb-aff4-5557c270fe2d",
+      "name": "removeTagFromContact",
+      "credentials": {
+        "mauticApi": {
+          "id": "KKVYafejGMsSgXMj",
+          "name": "Mautic account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const contactTags = $('getContact').first().json.tags;\n\n// Return the result\nconst hasSQLTag = contactTags.some(tagObj => \n    tagObj.tag && tagObj.tag.toLowerCase() === 'sql'\n);\n\nconst hasMQLTag = contactTags.some(tagObj => \n    tagObj.tag && tagObj.tag.toLowerCase() === 'mql'\n);\n\nreturn { json: { hasSQLTag, hasMQLTag } };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        560
+      ],
+      "id": "7e9a108b-39cb-4ed5-8538-6f00aea4def5",
+      "name": "isContactHasSQL"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://mautic.c1m.ai/api/contacts/{{ $('getContact').item.json.id }}/edit",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "mauticApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tags\": [\"-mql\", \"-MQL\"]\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1632,
+        736
+      ],
+      "id": "615f4a2a-1f9d-4d8a-9306-29f69d2bc07c",
+      "name": "removeTagFromContact2",
+      "credentials": {
+        "mauticApi": {
+          "id": "KKVYafejGMsSgXMj",
+          "name": "Mautic account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0a6f0337-0648-4b0f-b9dc-dc67955ed787",
+              "leftValue": "={{ $json.hasSQLTag }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "a2feae74-f479-4b4e-b5dc-8471a8b40530",
+              "leftValue": "={{ $('Webhook').item.json.body.tag.toLowerCase() }}",
+              "rightValue": "mql",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1248,
+        560
+      ],
+      "id": "1195f6df-f87b-44c9-9c5f-4bb8bae8ed64",
+      "name": "ifNotHasSql"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c2f0d6f2-5cb2-427d-8b17-98889b5739a6",
+              "leftValue": "={{ $('Webhook').item.json.body.tag.toLowerCase() }}",
+              "rightValue": "sql",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "55e81e07-f19a-41a3-a2fa-d78b61a32109",
+              "leftValue": "={{ $('isContactHasSQL').item.json.hasMQLTag }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1360,
+        752
+      ],
+      "id": "f521570b-c950-4d5e-aed7-2f12adab2267",
+      "name": "ifHasMql"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a557abab-c7d2-48f9-bf7f-4cae4ef6503e",
+              "name": "message",
+              "value": "Cannot assign MQL Tag. This contact has SQL.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1744,
+        880
+      ],
+      "id": "329d6300-1266-496e-a66f-fd8b34e90556",
+      "name": "hasSQLMessage"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "490a2e77-4f8d-4954-8b08-480103a76474",
+              "leftValue": "={{ $json.hasSQLTag }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "8799c162-50ad-4fbd-bfdd-1a53c0a4c2ad",
+              "leftValue": "={{ $('Webhook').item.json.body.tag.toLowerCase() }}",
+              "rightValue": "mql",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        896
+      ],
+      "id": "88808e3a-0d79-416e-8ca0-2c582eff9bc9",
+      "name": "ifAlreadySql"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "ifEmailAddressProvided",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getContact": {
+      "main": [
+        [
+          {
+            "node": "ifNotContactExists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getAllTags": {
+      "main": [
+        [
+          {
+            "node": "checkIfTagExists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ifEmailAddressProvided": {
+      "main": [
+        [
+          {
+            "node": "getContact",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "emailNotProvidedError",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "checkIfTagExists": {
+      "main": [
+        [
+          {
+            "node": "ifTagNotExistInMautic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "createTag": {
+      "main": [
+        [
+          {
+            "node": "validateAction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ifTagNotExistInMautic": {
+      "main": [
+        [
+          {
+            "node": "createTag",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "validateAction1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "emailNotProvidedError": {
+      "main": [
+        [
+          {
+            "node": "emailOrContactNotExistResponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "contactNotExistError": {
+      "main": [
+        [
+          {
+            "node": "emailOrContactNotExistResponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ifNotContactExists": {
+      "main": [
+        [
+          {
+            "node": "getAllTags",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "contactNotExistError",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "newTagMessage": {
+      "main": [
+        [
+          {
+            "node": "successResponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "existingTagMessage": {
+      "main": [
+        [
+          {
+            "node": "successResponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "updateContactWitNewTag": {
+      "main": [
+        [
+          {
+            "node": "newTagMessage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "updateContactWithExistingTag": {
+      "main": [
+        [
+          {
+            "node": "existingTagMessage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "validateAction": {
+      "main": [
+        [
+          {
+            "node": "updateContactWitNewTag",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "removeTagFromContact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "validateAction1": {
+      "main": [
+        [
+          {
+            "node": "isContactHasSQL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "removeTagFromContact1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "removeTagFromContact1": {
+      "main": [
+        [
+          {
+            "node": "removeTagMessage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "removeTagMessage": {
+      "main": [
+        [
+          {
+            "node": "successResponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "removeTagFromContact": {
+      "main": [
+        [
+          {
+            "node": "removeTagMessage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "isContactHasSQL": {
+      "main": [
+        [
+          {
+            "node": "ifNotHasSql",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "removeTagFromContact2": {
+      "main": [
+        [
+          {
+            "node": "updateContactWithExistingTag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ifNotHasSql": {
+      "main": [
+        [
+          {
+            "node": "updateContactWithExistingTag",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ifHasMql",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ifHasMql": {
+      "main": [
+        [
+          {
+            "node": "removeTagFromContact2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ifAlreadySql",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "hasSQLMessage": {
+      "main": [
+        [
+          {
+            "node": "successResponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ifAlreadySql": {
+      "main": [
+        [
+          {
+            "node": "hasSQLMessage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "updateContactWithExistingTag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4346468e-cdb9-4490-94cb-94b57d979e2b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cdb933c56d4d2fd569a441b2b7966e0e27d761306d8926e1440759978db55554"
+  },
+  "id": "05c8sWcFpdU5lQ8S",
+  "tags": []
+}
